@@ -1,12 +1,10 @@
 # STRIP TRIAL DATA ANALYSIS
 
-
-### Check current R version and update if neccessary 
+### Check current R version and update if necessary 
 R.version.string 
 install.packages("installr") 
 library(installr)
 updateR()  
-
 
 ### Clear all previous objects, values, graphics and windows
 rm(list=ls(all=TRUE))
@@ -20,7 +18,7 @@ ALL <- read.csv("Data.csv", header = T)
 #### Converting grain ield from bu/acre to kg/ha and test weight from lbs/bu to kg/cm3
 
 ALL$YIELD<- ALL$YIELD*0.0673  
-ALL$TWT<- ALL$YIELD*1.25
+ALL$TWT<- ALL$TWT*1.25
 
 #### Specifying the design and response variables to factor and numeric variables, respectively. 
 
@@ -55,134 +53,13 @@ ALL$PROT <- as.numeric(ALL$PROT)
 ALL$OIL <- as.numeric(ALL$OIL)
 ALL$STR <- as.numeric(ALL$STR)
 
-
-## Data Cleaning and Outlier Removal 
-
-boxplot(x$EHT, plot=TRUE)$out
-outliers <- boxplot(ALL$PHT, plot=TRUE)$out  # save the outliers in a vector
-x<-ALL
-x<- x[-which(c(x$EHT)%in% outliers),]
-ALL <-  x
-
-
 ## TAKING A SUBSET OF THE DATA
 library(tidyverse)
 library(dplyr)
 ALL2020 <- ALL %>% filter(YEAR=="2020")
-
-
-
-
-## Estimating Blups for each Traut 
-
-DataOutput<- data.frame(matrix(vector(),13,1, dimnames=list(c(), c("CODE"))))
-
-#fill empty dataframe with 1-300 so that the cbind will work later on
-DataOutput$CODE <- unique(ALL[,7]) #fill in Entry numbers
-#DataOutput$FAR <- unique(ALL[,3])
-#DataOutput$YEAR <- unique(ALL[,2])
-#DataOutput$Day <- c(9) #fill in Day of data collection
-
-#this empty dataframe is for variance components
-DataVarComp <- data.frame()
-DataVarCompOutput <- data.frame()
-#HeritabilityData <- data.frame()
-
-#this empty dataframe is for dropped variance components
-drops <- c("var1","var2","sdcor") 
-
-colnames(ALL)
-str(ALL[,9:ncol(ALL)])
-#take only the columns with numerical data
-colnum=c(4:ncol(ALL))
-i = 1 
-for(i in 1:13){ #this second loop runs through each TRAIT, one at a time
-  x=colnum[i] #set the current [i] column as x
-  trait=colnames(ALL)[x] #sets the current column header as the trait name
-  DF <- ALL #make a copy that we can use for our analysis
-  colnames(DF)[x]="y"  #renames the trait variable as "y" for the model analysis below
-  
-  #We are interested in random effects, which estimates the proportion of variation and not fixed effects. 
-  #Knowing variability components allows us to calculate Heritability.
-  #Random-effects terms are distinguished by vertical bars or pipes (|) 
-  #library(lme4) #our random effects mixed model
-  #model <- lmer(y~(1 | CODE) + (1 | YEAR) + NSRC + WRT+ CCT + RTNL + Density, DF)
-  #summary(model)
-  #anova(model)
-  
-  
-  library(lme4) 
-  model.lmer2 = lmer(y ~ (1|YEAR) +(1| FAR) + (1|CODE) + (1|FAR:CODE) +(1|YEAR:CODE)+ (1|YEAR:FAR) +(1|YEAR:CODE:FAR),REML = FALSE, data= DF)
-  anova(model.lmer2,type = 3, test.statistic="F" )
-  summary(model.lmer2) 
-  
-  
-  
-  #qqnorm(residuals(mod1), pch = 1, frame = FALSE)
-  #qqline(residuals(mod1), col = "steelblue", lwd = 2)
-  #qqPlot(residuals(mod1))
-  #hist(residuals(mod1))
-  #boxplot(residuals(mod1))
-  #shapiro.test((residuals(mod1)))
-  
-  
-  varComp<-as.data.frame(VarCorr(model.lmer2,comp="vcov")) #function calculates estimated variances between random-effects terms in a mixed-effects model  blup = coef(model)$Entry
-  blup = coef(model.lmer2)$CODE #coef extracts model coefficients from lmer objects returned by modeling functions
-  hist(blup[,1]) #plot it out
-  colnames(blup) <- trait #rename the BLUP column by the trait in our loop
-  #add columns to existing dataframe  
-  DataOutput <- cbind(DataOutput,blup) #ammends our dataframe with the new BLUP column for the new trait
-  
-  #Modify variance component df by
-  #deleting columns in variance component dataframe (we don't need it)
-  varComp<-varComp[ , !(names(varComp) %in% drops)]
-  #set the trait name from the loop
-  varComp$Trait<-trait
-  #add columns to existing dataframe
-  DataVarComp <- rbind(DataVarComp,varComp) 
-}
-
-#reshape our variance components dataframe so that we can run the heritability script
-DataVarCompOutput <- reshape(DataVarComp, idvar = "Trait", timevar = "grp", direction = "wide")
-
-#the broad sense heritability script
-#Taken from Gioia et al. 2017
-nloc = 20  #Number of locations the hybrids were tested. 7 in 2018, 6 in 2019 and 7 in 2020
-HeritabilityData <- ((DataVarCompOutput[,2])) / (((DataVarCompOutput[,2])) + (((DataVarCompOutput[,4])) / (nloc)))
-##H2 is genetic variance divide by the sum of genetic variance and error variance divided by the number of observations/locations
-
-#create function to identify maximum value in a column
-colMax <- function(data) sapply(data, max, na.rm = TRUE)
-#create function to identify minimum value in a column
-colMin <- function(data) sapply(data, min, na.rm = TRUE)
-#create function to identify mean value in a column
-colMean <- function(data) sapply(data, mean, na.rm = TRUE)
-#create function to identify median value in a column
-colMedian <- function(data) sapply(data, median, na.rm = TRUE)
-#create function to identify standard dev value in a column
-colStdev <- function(data) sapply(data, sd, na.rm = TRUE)
-
-
-#summary statistics
-DataColMax <- colMax(DF[,colnum])
-DataColMin <- colMin(DF[,colnum])
-DataColMean <- colMean(DF[,colnum])
-DataColMedian <- colMean(DF[,colnum])
-DataColStdev <- colStdev(DF[,colnum])
-DataColSE<-std.error(DF[,colnum])
-
-CVg <- (sqrt(DataVarCompOutput[,2])) / ((DataColMean))  #Coefficience of variance, genetic variance divided by mean
-#CVp <- will be calculated as the sqrt of the sum of error and genetic variance divided by the mean
-
-DataVarCompOutput <- cbind(DataVarCompOutput,HeritabilityData,CVg,DataColMin,DataColMax,DataColMean,DataColMedian,DataColStdev,DataColSE)
-DataVarCompOutput[1:14,]
-
-DataVarCompOutput %>% filter(Trait == "TRL") %>% select(HeritabilityData) 
-
-install.packages("xlsx")
-library(xlsx)
-write.xlsx(DataOutput, "BLUP5.xlsx")
-write.xlsx(DataVarCompOutput, "H5.xlsx")
+ALL2020 <- ALL %>% filter(YEAR=="2020")
+ALL2020 <- ALL %>% filter(YEAR=="2020")
+ALL2020 <- ALL %>% filter(YEAR=="2020")
 
 
 ## Simple Linear Models and Model Comparison
@@ -266,56 +143,6 @@ calc_rsquared(y = y, yhat = yhat)
 summary(modelyield)$r.squared
 
 
-#Another way of directly comparing the two models is with the analysis of deviance,
-#which can be performed with the function anova:
-#This test compares the residual deviance of the two models to see whether they are difference and 
-#calculates a p-values. In this case the p-value is highly significant, meaning that the models are different. 
-#Since we already compared the AIC, we can conclude that pois.mod2 is significantly (low p-value) better (lower AIC) than mod1.
-DF <- OREI2019
-library(lme4)
-mod1 <- lmer(YIELD~ (1|CODE), ALL)
-mod2 <- lmer(YIELD~ (1|CODE) + (1|FARM), ALL)
-mod3 <- lmer(YIELD~ (1|CODE) + (1|FARM) + (1|CODE:FARM), ALL) #WE DONT HAVE ENOUGH DF
-
-mod4 <- lmer(YIELD~(1|CODE) + (1|CCT), ALL)
-mod5 <- lmer(YIELD~(1|CODE) + (1|CCT) + (1|CCT:CODE), ALL)# Mod4 is better
-mod6 <- lmer(YIELD~(1|CODE) + (1|CCT) + (1|NSRC), ALL) #BETTER THAT MOD4
-mod7 <- lmer(YIELD~(1|CODE) + (1|CCT) + (1|NSRC) + (1|WRT), ALL) #BETTER THAN 6
-
-mod8 <- lmer(YIELD~(1|CODE) + (1|CCT) + (1|NSRC) + (1|PDTY),ALL) #NOT BETTER THAN 7 OR 6, PDTY NOT SIGNIFICANT
-
-mod9 <- lmer(YIELD~(1|CODE) + (1|CCT) + (1|NSRC) + (1|WRT) + (1|RTN),ALL)#BETTER THAN 7, THIS IS GOOD FOR COMBINED ANALYSIS
-
-
-summary(mod9)
-anova(mod7,mod9,test="Chisq")
-
-install.packages("AICcmodavg")
-library(AICcmodavg)
-models <- list(mod1, mod2, mod3,mod4, mod5,mod6,mod7,mod8,mod9)
-model.names <- c('mod1', 'mod2', 'mod3','mod4', 'mod5','mod6','mod7','mod8','mod9')
-aictab(cand.set = models, modnames = model.names)
-
-
-###############Pairwise comparisons ###########
-AOV <- aov(YIELD ~ CODE,data =OREI2020)
-
-require(graphics)
-TukeyHSD(AOV, "CODE", ordered = TRUE)
-plot(TukeyHSD(AOV, "CODE"))
-
-
-mod1 <- lm(YIELD ~ CODE + CCT + NSRC + WRT, data = OREI2020)
-mod1 <- lm(YIELD~ YEAR + CODE + NSRC + CCT + WRT + RTN, ALL)
-mod.av <- aov(mod1)
-summary(mod.av)
-tukey.test2 <- TukeyHSD(mod.av, trt = 'CODE')
-par(mfrow=c(2,2))
-plot(tukey.test2,las=2,cex=0.25,col="black")
-
-library(agricolae)
-tukey.test3 <- HSD.test(mod.av, trt = 'CODE')
-tukey.test3
 
 #############LSD Least significant differences ###############
 
@@ -333,28 +160,6 @@ modelstr <- lm(STR ~ CODE + YEAR + NSRC + WRT+ CCT + RTNL + Density, ALL)
 modeloil <- lm(OIL ~ CODE + YEAR + NSRC + WRT+ CCT + RTNL + Density, ALL)
 
 
-##colineality diagonistic
-library(olsrr)
-ols_eigen_cindex(modelyield)
-ols_vif_tol(modelyield)
-ols_plot_resid_fit_spread(modelyield)
-
-modelyield <- lm(YIELD ~ CODE + WRT + CCT + RTNL + Density, ALL2020) # Explore cover crop and manure effect 
-anova(modelyield)
-anova(modelpht)
-anova(modeleht)
-anova(modelsdl)
-anova(modelsds)
-anova(modelmst)
-anova(modeltwt)
-anova(modelkwt)
-anova(modelprot)
-anova(modelstr)
-anova(modeloil)
-
-#mod1<-lm(YIELD ~ CODE,data = ALL)
-#out2 <- LSD.test(mod1,"CCT", p.adj="bonferroni"), I didnt find significant differences with adjusted p values
-
 library(agricolae)
 outyield <- LSD.test(modelyield,alpha = 0.05,"CCT") 
 outpht <- LSD.test(modelpht,alpha = 0.05,"Density") 
@@ -368,7 +173,6 @@ outstr <- LSD.test(modelstr,alpha = 0.05,"RTNL")
 outprot <- LSD.test(modelprot,alpha = 0.05,"RTNL") 
 outoil <- LSD.test(modeloil,alpha = 0.05,"Density") 
 
-##out<-duncan.test(modelyield,"CODE",group = T, console = T)  #we can also use duncan test but I need to investigate which test is more apropriate
 
 library(agricolae)
 outyear <- LSD.test(modelyield,alpha = 0.05, "YEAR")
@@ -383,10 +187,11 @@ par(mfrow=c(1,2),cex=0.85,cex.axis = 1,cex.lab=1.2,lwd=2)
 bar.err(outyear$means,variation = "SE", xlab="", ylab="Grain yield [ton/ha]",las=2, ylim=c(0,12), col = "grey44")
 bar.err(outcct$means,variation = "SE",  xlab="", ylab="Grain yield [ton/ha]",las=1, ylim=c(0,12),las=2,col = "grey44")
 bar.err(modelyield$means,variation = "IQR", xlab="",lwd=1.3, ylab="Grain yield [ton/ha]",las=2, ylim=c(0,12), col = "grey44")
-#bar.err(outwrt$means,variation = "SE", xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12), las=2, col = "grey44")
-#bar.err(outrtn$means,variation = "SE", xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12), las=2, col = "grey44")
-#bar.err(outdensity$means,variation = "SE",  xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12),las=2,  col = "grey44")
-###plots with mean separatios###
+bar.err(outwrt$means,variation = "SE", xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12), las=2, col = "grey44")
+bar.err(outrtn$means,variation = "SE", xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12), las=2, col = "grey44")
+bar.err(outdensity$means,variation = "SE",  xlab="", ylab="Grain yield [ton/ha]", ylim=c(0,12),las=2,  col = "grey44")
+
+###plots with mean separations###
 plot(out1,las=2)
 plot(out2)
 plot(out3)
@@ -418,57 +223,9 @@ ALL %>%
 
 
 
+##########Normality#######
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##### ANALYSIS FOR FARMER REPORTS 2020  #################
-
-mod1<-lm(PROT ~ CODE + CCT + NSRC + WRT + RTN, data = ALL)
-
-
-out1 <- LSD.test(model8,"CODE") 
-out2 <- LSD.test(model8,"CCT")
-out3 <- LSD.test(model8,"NSRC")
-out4 <- LSD.test(model8,"WRT")
-out5<- LSD.test(model8,"RTN")
-
-par(mfrow=c(1,2),cex=1)
-bar.err(out1$means,variation = "SE", density=30, angle=11, xlab="", ylab="Yield [Bu/Acre]",las=2, ylim=c(0,200), col = c("red", "green", "blue", "orange","#2AEBD7","#732AEB", "#EBE22A"))
-bar.err(out2$means,variation = "SE", density=30,las=2, angle=11, xlab="", ylab="Yield [Bu/Acre]", ylim=c(0,200),col = "#317")
-bar.err(out3$means,variation = "SE", density=30, las=2,angle=11, xlab="", ylab="Yield [Bu/Acre]", ylim=c(0,170), col = c("red", "blue", "green","#2AEBD7", "#732AEB", "#EBE22A","#EB2A76"))
-#bar.err(out4$means,variation = "SE", density=30, angle=11, xlab="Weed Pressure", ylab="Yield [Bu/Acre]", ylim=c(0,200), col = c("red", "blue","green"))
-#bar.err(out5$means,variation = "SE",  density=30, angle=11,xlab="Rotation Length", ylab="Yield [Bu/Acre]",las=1, ylim=c(0,200), col = c("red", "blue","green","orange"))
-
-
-
-##########Normality################################################Normality############
-#par(mfrow=c(2,2),cex=1)
+par(mfrow=c(2,2),cex=1)
 qqnorm(residuals(modelyield), pch = 1, frame = FALSE)
 qqline(residuals(modelyield), col = "steelblue", lwd = 2)
 qqPlot(residuals(modelyield))
@@ -476,33 +233,6 @@ hist(residuals(modelyield))
 boxplot(residuals(modelyield))
 shapiro.test((residuals(mod1)))
 
-
-library(agricolae)
-library(car)
-leveneTest(modelyield,  center=mean, data=ALL)
-
-
-kruskal.test(YIELD ~ PDTY, data = ALL)
-library(car)
-library(MASS)
-boxcox(model8)
-
-bc <- boxcox(model8)
-lambda <- bc$x[which.max(bc$y)]
-lambda=2
-new_model <- lm(((YIELD^lambda-1)/lambda) ~ CODE + NSRC + WRT+CCT+RTN+PDTY, data = ALL)
-
-mod<- lm(((YIELD^lambda-1)/lambda)~ CODE+NSRC+WRT+CCT+RTN+PDTY, data=ALL)
-anova(mod)
-
-
-
-leveneTest(((YIELD^lambda-1)/lambda)~ CODE*NSRC*WRT*CCT*RTN*PDTY,  center=mean, data=ALL)
-
-library(car)
-leveneTest(newvariable,newdata$FAR+newdata$Hybrid) 
-Mod3 <- manova(cbind(YLD,PHT,EHT,SDLf,RTA,FDTop) ~ MTRT, data = newdata)
-summary.aov(Mod3)
 
 #####MULTIPLE REGRESSION HOMOSCEDASTICITY ##MULTIPLE REGRESSION HOMOSCEDASTICITY
 
@@ -520,22 +250,9 @@ library(quantmod)
 library(lmtest)
 bptest(model6) 
 
-#Testing the Multicollinearity Assumption
-#Correlation Matrix
-# creating subset of continuous independent variables from the dataframe
-
-
-expVar <- ALL[c("PHT", "EHT","PROT", "OIL","STR" ,"TWT")]
-corMatrix <- round(cor(expVar), 2)
-corMatrix
-
-library(caret)
-findCorrelation(corMatrix, cutoff = 0.7, names = TRUE)
-
-
-
 
 ####BOX PLOTS FOR GRAIN QUALITY ###
+
 library(ggplot2)
 ggplot(ALL, aes(x=RTNL, y=YIELD, fill=CODE)) 
 +
@@ -549,7 +266,7 @@ ggplot(ALL, aes(x=NSRC, y=YIELD, fill=PROG))  +
   geom_boxplot(alpha=0.5) +
   theme_minimal()+
   theme(legend.position="bottom") +
-  #scale_fill_brewer(palette="Dark2")
+  scale_fill_brewer(palette="Dark2")
   
   
   ggplot(ALL, aes(x=WRT, y=PROT, fill=WRT)) +
@@ -561,7 +278,7 @@ ggplot(ALL, aes(x=CCT, y=PROT, fill=CCT)) +
 ggplot(ALL, aes(x=RTN, y=PROT, fill=RTN)) +
   geom_boxplot() 
 
-######BOX PLOTS WITHOUT GGPLOT
+## BOX PLOTS WITHOUT GGPLOT
 
 boxplot(COmpiled$YIELD ~ Compiled$Code,
         col=c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"),
@@ -585,7 +302,6 @@ mod1<-lm(STR ~  YEAR + CODE + PROG, data = ALL)
 out1 <- LSD.test(mod1,"PROG") 
 
 
-
 ########################PLOTING INTERRACTIONS ################
 
 library(sjPlot)
@@ -599,10 +315,7 @@ par(mfrow=c(1,2),cex=0.6)
 plot_model(fit2, type = "int", terms = c("FARM", "YEAR"))
 
 
-
 ########PCA TO GROUP FARMERS ###################PCA TO GROUP FARMERS ###################PCA TO GROUP FARMERS ############
-#using the generated blups 
-
 
 pca <- prcomp(ALL[,c(22:31)], center = TRUE, scale = TRUE) #scale = true is for variables measured in different units, if values are measures in same unit, scale=false
 print(pca)
@@ -658,7 +371,6 @@ ggplot(ALL, aes(x = MCComb, y = YIELD, group = MCComb, col = MCComb)) +
 library(variability)
 gen.var(data, genotypevector, replicationvector)
 gen.var(ALL [19:32], ALL$CODE, ALL$FARM)
-
 
 
 ######################### PEARSON CORRELATION ###################### PEARSON CORRELATION ############# PEARSON CORRELATION ###
@@ -772,93 +484,10 @@ chart.Correlation(mynewmatrix)  ###correlations, histogram and scatterplots in o
 
 
 
+## Plotting Weather Data for all locations. Check weather data summary. 
 
+# 1. Precipitation 
 
-
-
-########## EXTRACTING EXCEL FILE #################################EXTRACTING EXCEL FILE ########
-
-# Statistical procedures for agricultural research, pag 143
-# Grain Yields of Three Rice Varieties Grown under
-#Three Management practices and Five Nitrogen levels; in a
-#split-split-plot design with nitrogen as main-plot,
-#management practice as subplot, and variety as sub-subplot
-#factores, with three replications.
-library(agricolae)
-f <- system.file("external/ssp.csv", package="agricolae")
-ssp<-read.csv(f)
-model<-with(ssp,ssp.plot(block,nitrogen,management,variety,yield))
-gla<-model$gl.a; glb<-model$gl.b; glc<-model$gl.c
-Ea<-model$Ea; Eb<-model$Eb; Ec<-model$Ec
-op<-par(mfrow=c(1,3),cex=0.6)
-out1<-with(ssp,LSD.test(yield,nitrogen,gla,Ea,console=TRUE))
-out2<-with(ssp,LSD.test(yield,management,glb,Eb,console=TRUE))
-out3<-with(ssp,LSD.test(yield,variety,glc,Ec,console=TRUE))
-plot(out1,xlab="Nitrogen",las=1,variation="IQR")
-plot(out2,xlab="Management",variation="IQR")
-plot(out3,xlab="Variety",variation="IQR")
-# with aov
-AOV<-aov(yield ~ block + nitrogen*management*variety + Error(block/nitrogen/management),data=ssp)
-summary(AOV)
-par
-
-################# MACHINE LEARNING ALGOLITHYMS ################ MACHINE LEARNING ALGOLITHYMS ##########
-
-data <- read.csv(file.choose(), header = TRUE, na = "")
-ALL <- data
-
-install.packages("ClustOfVar", dependencies = TRUE)
-install.packages("cluster", dependencies = TRUE)
-
-library(ClustOfVar)
-
-names(ALL)
-
-xquant <- ALL[,c(21:34)] # Numeric variables
-xqual <- ALL[,c(10:17)]      # Categorical variables
-
-
-tree <- hclustvar(xquant, xqual)
-plot(tree)
-
-
-k.means <- kmeansvar(xquant, xqual, init=4)
-summary(k.means)
-
-library(cluster)
-
-d <- daisy(ALL, metric="gower")
-
-
-#####################WEATHER DATA FOR REPLICATED TRIAL ################
-
-Means <- read.csv(file.choose(), header = TRUE, na = "")
-
-Temperature <- as.numeric(WD$Temperature)
-Precipitation <- as.numeric(WD$Precipitation)
-week <- as.factor(WD$Week)
-Location <- as.factor(WD$Location)
-
-
-#library(dplyr)
-#RWD <- d %>%
-#group_by(Location, Week) %>% 
-#summarise_at(vars("Temperature","Precipitation" ), mean) 
-
-
-library(dplyr)
-RWD <- WD %>%
-  group_by(Location, Week) %>% 
-  summarise(Temperature= mean(Temperature), Precipitation=sum(Precipitation))
-
-install.packages("xlsx")
-library(xlsx)
-write.xlsx(RWD, "RWD.xlsx")
-
-
-write.csv (map, "Strip_Cordinates.csv")
-
-##########PLOT RAINFAL##############PLOT RAINFAL##############PLOT RAINFAL##############PLOT RAINFAL###########
 library(ggplot2)
 library(dplyr)
 library(viridis)
@@ -876,7 +505,8 @@ RWD %>%
   ylab("Total Precipitation [mm]") +
   xlab("Weeks After Planting")
 
-#####TEMPERATURE#########################################TEMPERATURE###########################
+# 2. Rainfall
+
 library(ggplot2)
 library(dplyr)
 library(viridis)
@@ -896,7 +526,8 @@ RWD %>%
 
 
 
-##################PLOTTING LOCATIONS ON THE MAP #########################################################
+# Plotting farm locations on the map to show distribution
+
 map <- read.csv(file.choose(), header = TRUE, na = "")
 map <- read.csv("Cordinates_ALL.csv", header = TRUE)
 
@@ -906,7 +537,6 @@ State <- as.factor(map$State)
 Site <- as.factor(map$Site)
 Lat <- as.numeric(map$Lat)
 Long <- as.numeric(map$Long)
-
 
 install.packages(c("cowplot", "lubridate", "googleway", "ggplot2", "ggrepel", "dplyr", "tidyverse", "leaflet",
                    "ggspatial", "mapview", "libwgeom", "sf", "rnaturalearth", "rnaturalearthdata"))
@@ -945,7 +575,6 @@ install.packages("raster")
 install.packages("rgdal")
 install.packages("dismo")
 
-
 require(ggplot2)
 require(ggmap)
 require(maps)
@@ -971,244 +600,6 @@ ggmap(Trial_map) +
   scale_shape_manual(values=c(21, 23, 22)) +
   theme(legend.position="bottom") +
   geom_text(data = map, aes(Long, Lat, label = Site, group = NULL), size = 3,cex=2, hjust=-0.1,angle=0)
-
-###########Replicated Trial Maps#########
-map <- read.csv("Repli_Cordinates.csv", header = TRUE)
-
-Year <- as.factor(map$Year)
-Site <- as.factor(map$Site)
-Lat <- as.numeric(map$Lat)
-Long <- as.numeric(map$Long)
-
-Trial_map <- get_stamenmap(
-  bbox = c(left = -91.6, bottom = 38, right = -87, top = 42.094), 
-  maptype = "terrain",color = c("bw"),force=TRUE,
-  zoom = 7)
-
-ggmap(Trial_map)
-
-ggmap(Trial_map) +
-  geom_point(data=map, aes(Long, Lat, colour = factor(Year), fill = factor(Year), shape=factor(Year)), size = 6) +
-  scale_shape_manual(values=c(21, 23, 19)) +
-  theme(legend.position="bottom") +
-  geom_text(data = map, aes(Long, Lat, label = Site, group = NULL), size = 6,cex=3, hjust=-0.3,angle=0)
-
-###############MEANS BY MULTIPLE GROUPS ############
-Compiled <- read.csv(file.choose(), header = T)
-
-Compiled$Set <- as.factor(Compiled$Set)
-Compiled$Year <- as.factor(Compiled$Year)
-Compiled$Nitro <- as.factor(Compiled$Nitro)
-Compiled$Code <- as.factor(Compiled$Code)
-Compiled$Weed <- as.factor(Compiled$Weed)
-Compiled$EFFECT <- as.factor(Compiled$EFFECT)
-Compiled$DTA <- as.numeric(Compiled$DTA)
-Compiled$DTS <- as.numeric(Compiled$DTS)
-Compiled$X.RTL <- as.numeric(Compiled$RTL)
-Compiled$X.STL<- as.numeric(Compiled$STL)
-Compiled$PHT <- as.numeric(Compiled$PHT)
-Compiled$EHT <- as.numeric(Compiled$EHT)
-Compiled$SDL <- as.numeric(Compiled$SDL)
-Compiled$GWT <- as.numeric(Compiled$GWT)
-Compiled$MST <- as.numeric(Compiled$MST)
-Compiled$TWT <- as.numeric(Compiled$TWT)
-Compiled$YIELD <- as.numeric(Compiled$YIELD)
-Compiled$PROT <- as.numeric(Compiled$PROT)
-Compiled$OIL <- as.numeric(Compiled$OIL)
-Compiled$STR <- as.numeric(Compiled$STR)
-
-library(dplyr)
-Means <- Compiled %>%
-  group_by(code, effect) %>%
-  summarise(across(FDS:RTA, mean))
-write.csv (Means, "RootEffects.csv")
-
-
-#####Calculating plot means for root data, 2021
-
-Compiled$Experiment <- as.factor(Compiled$Experiment)
-Compiled$Pedigree <- as.factor(Compiled$Pedigree)
-Compiled$Code <- as.factor(Compiled$Code)
-Compiled$Source <- as.factor(Compiled$Source)
-Compiled$Plot <- as.factor(Compiled$Plot)
-Compiled$Rotation <- as.factor(Compiled$Rotation)
-Compiled$Rep <- as.factor(Compiled$Rep)
-Compiled$Nitro <- as.factor(Compiled$Nitro)
-Compiled$PHT <- as.numeric(Compiled$PHT)
-Compiled$EHT <- as.numeric(Compiled$EHT)
-Compiled$SDL<- as.numeric(Compiled$SDL)
-Compiled$SDS <- as.numeric(Compiled$SDS)
-Compiled$Moisture <- as.numeric(Compiled$Moisture)
-Compiled$Test.Weight <- as.numeric(Compiled$Test.Weight)
-Compiled$Yield<- as.numeric(Compiled$Yield)
-Compiled$FDTop <- as.numeric(Compiled$FDTop)
-Compiled$FDS <- as.numeric(Compiled$FDS)
-Compiled$RAA <- as.numeric(Compiled$RAA)
-Compiled$SDA <- as.numeric(Compiled$SDA)
-
-
-
-library(dplyr)
-Means <- Compiled %>%
-  group_by(Plot) %>%
-  summarise(across(PHT:SDS, mean))
-write.csv (Means, "Plotmeans.csv")
-
-
-boxplot(Compiled$OIL ~ Compiled$Code , 
-        col=c("red", "#2AEBD7", "#732AEB", "#EBE22A"),
-        ylab="Starch Content [%]" , xlab="Breeding Program",las=2)
-
-
-
-
-
-
-#########################CLUSTER ANALYSIS#################DENDROGRAMS###############
-seeds_df <- ALL
-
-
-
-str(seeds_df)
-summary(seeds_df)
-any(is.na(seeds_df))
-seeds_label <- seeds_df$FARM
-seeds_df$FARM <- NULL
-str(seeds_df)
-seeds_df_sc <- as.data.frame(scale(seeds_df[23:36]))
-na.omit(seeds_df_sc)
-summary(seeds_df_sc)
-
-dist_mat <- dist(seeds_df_sc, method = 'euclidean')
-hclust_avg <- hclust(dist_mat, method = 'average')
-plot(hclust_avg)
-
-cut_avg <- cutree(hclust_avg, k = 6)
-plot(hclust_avg)
-rect.hclust(hclust_avg , k = 6, border = 2:6)
-abline(h = 3, col = 'red')
-
-suppressPackageStartupMessages(library(dendextend))
-avg_dend_obj <- as.dendrogram(hclust_avg)
-avg_col_dend <- color_branches(avg_dend_obj, h = 3)
-plot(avg_col_dend)
-
-
-######################ANCOVA ####################################ANCOVA ############ancova
-
-
-library(car)
-ancova_model <- aov(YLD~ CODE + DTA, data = ALL)
-Anova(ancova_model, type="III")
-
-
-
-###############################HIGH IMPACT HYBRID ANALYSIS #######################
-ALL<- read.csv(file.choose(), header = T)
-
-ALL$YLD<- ALL$YLD*0.0673
-
-ALL$EXP <- as.factor(ALL$EXP)
-ALL$CODE <- as.factor(ALL$CODE)
-ALL$GROUP<- as.factor(ALL$GROUP)
-ALL$DTA <- as.numeric(ALL$DTA)
-ALL$DTS <- as.numeric(ALL$DTS)
-ALL$RTLPCT <- as.numeric(ALL$RTLPCT)
-ALL$STLPCT <- as.numeric(ALL$STLPCT)
-ALL$PHT <- as.numeric(ALL$PHT)
-ALL$EHT <- as.numeric(ALL$EHT)
-ALL$GWT <- as.numeric(ALL$GWT)
-ALL$MAH <- as.numeric(ALL$MAH)
-ALL$TWT <- as.numeric(ALL$TWT)
-ALL$YLD <- as.numeric(ALL$YLD)
-ALL$PROT <- as.numeric(ALL$PROT)
-ALL$OIL <- as.numeric(ALL$OIL)
-ALL$MST <- as.numeric(ALL$MST)
-ALL$STR <- as.numeric(ALL$STR)
-
-str(ALL)
-nlevels(ALL$GROUP)
-unique(ALL$GROUP)
-nlevels(ALL$CODE)
-
-#Histograms to see the data distribution
-par(mfrow=c(1,3),cex=0.85)
-hist(ALL$YLD)
-hist(ALL$PHT)
-hist(ALL$EHT)
-hist(ALL$TWT)
-hist(ALL$MAH)
-hist(ALL$DTA)
-hist(ALL$DTS)
-hist(ALL$STLPCT)
-hist(ALL$RTLPCT)
-hist(ALL$PROT)
-hist(ALL$STR)
-hist(ALL$OIL)
-hist(ALL$MST)
-
-##############Box Plot########
-library(nlme)
-library(agricolae)
-boxplot(YLD ~ GROUP, xlab= "", ylab= "Grain Yield [Ton/ha", las=2, lwd=1,cex.axis=0.75, col = c("#FFA726"),data=ALL)
-boxplot(PROT ~ GROUP, xlab= "", ylab= "Protein Content [%]",las=2, lwd=1,cex.axis=0.75,col = c("#FFA726"), data=ALL)
-boxplot(STR ~ GROUP, xlab= "", ylab= "Starch Content [%]", las=2,lwd=1,cex.axis=0.75, col = c("#FFA726"), data=ALL)
-boxplot(OIL ~ GROUP, xlab= "", ylab= "Oil Content [%]",las=2,lwd=1,cex.axis=0.75, col = c("#FFA726"), data=ALL)
-
-#Nested Anova, Use / to show nexting of variables Group and Hybrid
-aov(formula = YLD ~ CODE, data = ALL)
-
-model1<-lm(YLD ~ CODE + Rep, data = ALL)
-model2<-lm(PHT ~ GROUP , data = ALL)
-model3<-lm(EHT ~ GROUP , data = ALL)
-model4<-lm(TWT ~ GROUP , data = ALL)
-model5<-lm(MST ~ GROUP , data = ALL)
-model6<-lm(DTA ~ GROUP , data = ALL)
-model7<-lm(DTS ~ GROUP , data = ALL)
-model8<-lm(RTLPCT ~ GROUP , data = ALL)
-model9<-lm(STLPCT ~ GROUP , data = ALL)
-model10<-lm(PROT ~ GROUP , data = ALL)
-model11<-lm(STR ~ GROUP , data = ALL)
-model12<-lm(OIL~ GROUP , data = ALL)
-
-Anova(model1)
-
-out1 <- LSD.test(model1,alpha = 0.05, "CODE")
-out2 <- LSD.test(model2,alpha = 0.05, "GROUP")
-out3 <- LSD.test(model3,alpha = 0.05, "GROUP")
-out4 <- LSD.test(model4,alpha = 0.05, "GROUP")
-out5 <- LSD.test(model5,alpha = 0.05, "GROUP")
-out6 <- LSD.test(model6,alpha = 0.05, "GROUP")
-out7 <- LSD.test(model7,alpha = 0.05, "GROUP")
-out8 <- LSD.test(model8,alpha = 0.05, "GROUP")
-out9 <- LSD.test(model9,alpha = 0.05, "GROUP")
-out10 <- LSD.test(model7,alpha = 0.05, "GROUP")
-out11 <- LSD.test(model8,alpha = 0.05, "GROUP")
-out12 <- LSD.test(model9,alpha = 0.05, "GROUP")
-
-
-par(mfrow=c(1,2),cex=0.85)
-bar.err(out1$means,variation = "SE", density=30, angle=11, xlab="", ylab="Grain Yield [tons/ha]",las=2, ylim=c(0,15), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out2$means,variation = "SE", density=30, angle=11, xlab="", ylab="Plant Height [cm]",las=2, ylim=c(0,300), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out3$means,variation = "SE", density=30, angle=11, xlab="", ylab="Ear Height [cm]",las=2, ylim=c(0,150), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out4$means,variation = "SE", density=30, angle=11, xlab="", ylab="Test Weight [lbs/bu]",las=2, ylim=c(0,80), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out5$means,variation = "SE", density=30, angle=11, xlab="", ylab="Moisture [%]",las=2, ylim=c(0,30), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out6$means,variation = "SE", density=30, angle=11, xlab="", ylab="Days to Anthesis",las=2, ylim=c(0,70), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out7$means,variation = "SE", density=30, angle=11, xlab="", ylab="Days to Silking",las=2, ylim=c(0,70), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out8$means,variation = "SE", density=30, angle=11, xlab="", ylab="Root Lodging [%]",las=2, ylim=c(0,20), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out9$means,variation = "SE", density=30, angle=11, xlab="", ylab="Stem Lodging [%]",las=2, ylim=c(0,5), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-
-bar.err(out7$means,variation = "SE", density=30, angle=11, xlab="", ylab="Protein Content [%]",las=2, ylim=c(0,70), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out8$means,variation = "SE", density=30, angle=11, xlab="", ylab="Starch Content [%]",las=2, ylim=c(0,20), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-bar.err(out9$means,variation = "SE", density=30, angle=11, xlab="", ylab="Oil Content [%]",las=2, ylim=c(0,5), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
-
-###Mixed model
-library(lme4)
-model.lmer = lmer(YLD ~ Rep + (1|GROUP/CODE), data=ALL)
-anova(model.lmer)
-summary(model.lmer)
-
-
 
 
 ###############################SUBSAMPLE ANALYSIS - STRIP TRIAL ANALYSIS WITH SUBSAMPLES AS REPS #### COMBINED ANALYSIS#######################
@@ -1252,6 +643,7 @@ out3 <- LSD.test(Model,alpha = 0.05, "FAR")
 par(mfrow=c(1,2),cex=0.85)
 bar.err(out1$means,variation = "SE", density=30, angle=11, xlab="", ylab="Grain Yield [tons/ha]",las=2, ylim=c(0,15), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
 boxplot(YIELD ~ CODE, xlab= "", ylab= "Grain Yield [Ton/ha", las=2, lwd=1,cex.axis=0.75, col = c("#FFA726"),data=Data18)
+
 
 
 
@@ -1332,6 +724,7 @@ interaction.plot(FAR18, Data18$CODE, Data18$YIELD, #wont work if there NAs in th
                  pch = c(19,17), cex.lab=1, cex.axis=1, cex.main=1, lwd =2, las = 1, fixed = TRUE)
 
 
+
 ##############SUBSAMPLE ANALYSIS - ANOVA 2019 AND 2020 ############
 Model2 <- aov(formula = SDS ~ YR + CODE + FAR +  YR:CODE + YR:FAR + CODE:FAR + YR:CODE:FAR, data =  Data1920)
 anova(Model2)
@@ -1369,22 +762,15 @@ interaction.plot(FAR1920, Data1920$CODE, Data1920$YIELD,
 
 ####################Combined analysis with all years and all farmers##################################
 
-Model <- aov(formula = SDS ~ YEAR + CODE + FAR +  YEAR:CODE + YEAR:FAR + CODE:FAR + YEAR:CODE:FAR, data =  ALL)
-anova(Model2)
-
 modelyield1 <- lm(YIELD ~ YEAR + CODE + FAR + YEAR*CODE*FAR, data = ALL)
 anova(modelyield1)
 
-####OR### this gives the same results
-
-Model3 <- aov(formula = SDS ~ YEAR + CODE + FAR + YEAR*CODE*FAR, data = ALL)
-anova(Model3)
 
 
 library(agricolae)
-out2 <- LSD.test(Model2,alpha = 0.05, "CODE")
-out3 <- LSD.test(Model2,alpha = 0.05, "YEAR")
-out4 <- LSD.test(Model2,alpha = 0.05,p.adj="bonferroni", "FAR")
+out2 <- HSD.test(Model2,alpha = 0.05, "CODE")
+out3 <- HSD.test(Model2,alpha = 0.05, "YEAR")
+out4 <- SD.test(Model2,alpha = 0.05,p.adj="bonferroni", "FAR")
 
 par(mfrow=c(1,2),cex=0.85)
 bar.err(out2$means,variation = "SE", density=30, angle=11, xlab="", ylab="Grain Yield [tons/ha]",las=2, ylim=c(0,15), col = c("red", "blue", "orange", "#2AEBD7","#732AEB", "#EBE22A", "#69b3a2", "turquoise","green", "yellow"))
@@ -1431,104 +817,6 @@ shapiro.test((residuals(mod1)))
 
 
 
-#######STANDARD ERROR CALCULATION#######STANDARD ERROR CALCULATION#######STANDARD ERROR CALCULATION###
-
-Otherscompiled <- Data1920
-
-install.packages("plotrix")                           
-library("plotrix")   
-std.error(Otherscompiled$PHT,na.rm = TRUE)
-std.error(Otherscompiled$EHT,na.rm = TRUE)
-std.error(Otherscompiled$SDL,na.rm = TRUE)
-std.error(Otherscompiled$SDS,na.rm = TRUE)
-std.error(Otherscompiled$YIELD,na.rm = TRUE)
-
-mean(Otherscompiled$PHT, na.rm = TRUE)
-mean(Otherscompiled$EHT, na.rm = TRUE)
-mean(Otherscompiled$SDL, na.rm = TRUE)
-mean(Otherscompiled$SDS, na.rm = TRUE)
-mean(Otherscompiled$YIELD, na.rm = TRUE)
-
-
-min(Otherscompiled$PHT, na.rm = TRUE)
-max(Otherscompiled$PHT, na.rm = TRUE)
-min(Otherscompiled$EHT, na.rm = TRUE)
-max(Otherscompiled$EHT, na.rm = TRUE)
-min(Otherscompiled$SDL, na.rm = TRUE)
-max(Otherscompiled$SDL, na.rm = TRUE)
-min(Otherscompiled$SDS, na.rm = TRUE)
-max(Otherscompiled$SDS, na.rm = TRUE)
-min(Otherscompiled$YIELD, na.rm = TRUE)
-max(Otherscompiled$YIELD, na.rm = TRUE)
-
-
-hist(Otherscompiled$SDS)
-hist(Otherscompiled$SDL)
-hist(Otherscompiled$PHT)
-hist(Otherscompiled$EHT)
-hist(Otherscompiled$YIELD)
-
-
-
-
-
-
-
-###############ESTIMATING RELIABILITY AS THE PROBABILITY OF A HYBRID TO OUTPERFORM THE CHECK VARIERTY#####
-###### ESTIMATED USING K.M ESKRIDGE AND R.F.MUMM, 1991. Choosing plant cultivars based on the probability of outperforming a check*##
-
-### 1. nonparametric approach using Cobhran's Q test and 
-####  2. Normally distributed difference 
-
-ALL <- read.csv("SubSamples_Combined.csv", header = TRUE)
-YD <-read.csv("DistributionYD.csv", header=TRUE)
-
-ALL$EXP <- as.factor(ALL$EXP)
-ALL$YEAR <- as.factor(ALL$YEAR)
-ALL$FAR <- as.factor(ALL$FAR)
-ALL$STATE <- as.factor(ALL$STATE)
-ALL$HYB <- as.factor(ALL$HYB)
-ALL$CODE <- as.factor(ALL$CODE)
-ALL$PHT <- as.numeric(ALL$PHT)
-ALL$EHT <- as.numeric(ALL$EHT)
-ALL$SDL <- as.numeric(ALL$SDL)
-ALL$SDS <- as.numeric(ALL$SDS)
-ALL$GWT <- as.numeric(ALL$GWT)
-ALL$MAH <- as.numeric(ALL$MAH)
-ALL$TWT <- as.numeric(ALL$TWT)
-ALL$THKWT <- as.numeric(ALL$THKWT)
-ALL$KWT <- as.numeric(ALL$KWT)
-ALL$YIELD <- as.numeric(ALL$YIELD)
-ALL$PROT <- as.numeric(ALL$PROT)
-ALL$OIL <- as.numeric(ALL$OIL)
-ALL$STR <- as.numeric(ALL$STR)
-
-YD$EXP <- as.factor(YD$EXP)
-YD$YEAR <- as.factor(YD$YEAR)
-YD$FARM <- as.factor(YD$FARM)
-YD$STATE <- as.factor(YD$STATE)
-YD$HYB <- as.factor(YD$HYB)
-YD$CODE <- as.factor(YD$CODE)
-YD$YIELD <- as.numeric(YD$YIELD)
-YD$Yd <- as.numeric(YD$Yd)
-
-#ALL$YIELD<- ALL$YIELD*0.0673  #change yield tons/ha
-#ALL$TWT<- ALL$YIELD*1.25   #change test weight to kg/hl.
-
-
-#Taking  subset of the data####
-library(tidyverse)
-library(dplyr)
-ALL2020 <- ALL %>% filter(YEAR=="2020")
-ALL2019 <- ALL %>% filter(YEAR=="2019")
-ALL2018 <- ALL %>% filter(YEAR=="2018")
-
-library(tidyverse)
-library(dplyr)
-YD2020 <- YD %>% filter(YEAR=="2020")
-YD2019 <- YD %>% filter(YEAR=="2019")
-YD2018 <- YD %>% filter(YEAR=="2018")
-
 #Normality and homosquedasiicity of yield  differences###. In order to use Approach one: Normally distributed differences, (K. M. Eskridge and R. E Mumm, 1991),
 #If d i is normally distributed over the population of envi- ronments with mean #di and standard deviation adi then the reliability
 #(Eq. (1)) of the ith test cultivar may be stated as: p (z > -di/SDdi) 
@@ -1568,65 +856,4 @@ library(agricolae)
 out1 <- LSD.test(Model1,alpha = 0.05, "CODE")
 out2 <- LSD.test(Model5,alpha = 0.05, "CODE")
 out3 <- LSD.test(Model6,alpha = 0.05, "CODE")
-
-
-
-##### COnducting a dunnet test for pairwise comparison between check and test hybrids. 
-##### 95% family-wise confidence level
-
-model <- aov(value ~ Group, data = data)
-summary(model)
-
-library(DescTools)
-DunnettTest(YIELD ~ CODE, data = ALL2018, control="CHECK", conf.level=0.95)
-DunnettTest(YIELD ~ CODE, data = ALL2019, control="CHECK", conf.level=0.95)
-DunnettTest(YIELD ~ CODE, data = ALL2020, control="CHECK", conf.level=0.95)
-
-
-##Combined analsis for all location and years
-library(DescTools)
-DunnettTest(YIELD ~ CODE, data = ALL, control="CHECK", conf.level=0.95)
-
-boxplot(YIELD ~ CODE, data = ALL)
-
-
-
-############# Kitale grain quality ######
-
-ALL <- read.csv("KF4_GQ.csv", header = TRUE)
-
-ALL$Pedigree <- as.factor(ALL$Pedigree)
-ALL$Family <- as.factor(ALL$Family)
-ALL$DTS <- as.numeric(ALL$DTS)
-ALL$PROT <- as.numeric(ALL$PROT)
-ALL$STR <- as.numeric(ALL$STR)
-ALL$OIL <- as.numeric(ALL$OIL)
-
-
-boxplot(DTS ~ Family, data = ALL, las= 2, cex.axis=0.75)
-boxplot(PROT ~ Family, data = ALL, las= 2, cex.axis=0.75)
-boxplot(STR ~ Family, data = ALL, las= 2, cex.axis=0.75)
-boxplot(OIL ~ Family, data = ALL,las= 2, cex.axis=0.75)
-
-
-
-##################### CALCULATING WALD STATISTIC TEST FOR RELIABILITY VALUES #########
-
-Wald <- read.csv(file.choose(), header = T)
-
-Wald$Variety <- as.factor(Wald$Variety)
-
-library(aod)
-
-model <- lm(RN ~ Variety, data = Wald)
-
-
-wald.test(Sigma = vcov(model), b = coef(model), Terms = 1)
-
-fm <- quasibin(cbind(y, n - y) ~ seed * root, data = Wald)
-# Wald test for the effect of root
-wald.test(b = coef(fm), Sigma = vcov(fm), Terms = 3:4)
-
-
-
 
