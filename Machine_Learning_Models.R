@@ -363,6 +363,11 @@ df45 <- download_daymet(site = "Ambriole2021",
 library(tidyverse)
 Weather <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df20,df21,df22,df23,df24,df25,df26,df27,df28,df29,df30,df31,df32,df33,df34,df35,df36,df37,df38,df39,df40,df41,df42,df43,df44,df45)
 
+library(readr)
+write.csv(Weather, "Raw_Weather_data_Orei.csv")
+
+
+
 ## Changing names and Unstacking columns
 
 # Variable names are too Long and stucked into one column. This will make names shorter and unstacked
@@ -394,32 +399,49 @@ weather_sorted$month<-factor(weather_sorted$month, levels=month.abb)
 # You can also select a specific year using the select () function.Using the pipe operator %>% we could chain operations and avoid saving intermediate objects. Forexample, here were are secting precipitation data from 2019 only
 
 Weather_GS  <- weather_sorted %>% 
-  filter(month == c("May", "Jun", "Jul", "Aug", "Sep")) %>% 
-  select(site, month,Date, prcp,srad, tmax, tmin, temp)
-
+            filter(month %in% c("May", "Jun", "Jul", "Aug", "Sep"))%>% 
+              select(site,year, month,Date, prcp,srad, tmax,tmin, temp)
 
 ## Variable Uniy conversions. 
 # if we want to change the units of the variables, we can use mutate function.
 
 Weather_GS <- Weather_GS %>% 
   mutate(
-    prcp_in = prcp / 25.4,
+    #prcp_in = prcp / 25.4,
     tmax = (tmax* 9/5)+32,
     tmin = (tmin* 9/5)+32,
     temp = (temp* 9/5)+32,
-    month = factor(month, levels = month.abb)
-  )
+    month = factor(month, levels = month.abb))
+
+#Estimating GDD. (tmax+tmin)/2 - 50 . But if tmax is above 86, we change to 86 and if below 50 we change it to 50. 
+
+library(dplyr)
+Weather_GS$tmax_gdd <- Weather_GS$tmax
+
+Weather_GS <- Weather_GS%>%
+  mutate(tmax_gdd = ifelse(tmax_gdd > 86, 86, ifelse(tmax_gdd < 50, 50, tmax_gdd)))
+
+Weather_GS$GDD <- (((Weather_GS$tmin+Weather_GS$tmax_gdd)/2)-50)
+
 
 ## Summarizing and group Data.
 # We can use the group_by function and summarize function to group data
 
 Weather_GS <- Weather_GS %>% group_by(site,month) %>% 
-  summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp))
+  summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp), GDD = sum(GDD))
+
+library(readr)
+write.csv(Weather_GS, "Weather_Data_Stacked.csv")
 
 
 Weather_GS_clean <-Weather_GS %>% 
   pivot_wider(names_from = c(month), #This helps to unstack a column with multiple variables into multiple colomns
-              values_from = c(prcp, srad, tmax, tmin, temp))
+              values_from = c(prcp, srad, tmax, tmin, temp, GDD))
+
+library(readr)
+write.csv(Weather_GS_clean, "Weather_Data_UnStacked.csv")
+
+
 
 ## This data was joined with soil data, management data and agronomic data to form one dataset for further statistical analysis. 
 
@@ -476,7 +498,15 @@ ggplot(data = Weather_GS) +
   theme_bw()
 
 
+## Estimating GDD per farmer
 
+
+
+
+
+
+library(readr)
+write.csv(map, "Strip_Cordinates.csv")
 
 
 
