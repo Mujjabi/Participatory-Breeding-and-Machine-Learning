@@ -427,7 +427,7 @@ Weather_GS$GDD <- (((Weather_GS$tmin+Weather_GS$tmax_gdd)/2)-50)
 ## Summarizing and group Data.
 # We can use the group_by function and summarize function to group data
 
-Weather_GS <- Weather_GS %>% group_by(site,month) %>% 
+Weather_GS <- Weather_GS %>% group_by(site,year,month) %>% 
   summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp), GDD = sum(GDD))
 
 library(readr)
@@ -498,25 +498,11 @@ ggplot(data = Weather_GS) +
   theme_bw()
 
 
-## Estimating GDD per farmer
-
-
-
-
-
-
-library(readr)
-write.csv(map, "Strip_Cordinates.csv")
-
-
-
-
-
 
 ## Estimating the Probability of An Experimental Hybrid to Outperform the Check 
 
 library(readr)
-Strips  <- read.csv("SubSample_RData.csv", stringsAsFactors = T)
+Strips  <- read.csv("ALL.csv", stringsAsFactors = T)
 Strips <- Strips[-c(1,3:8)]
 
 ## Converting planting data to julian
@@ -525,6 +511,35 @@ Strips$PDT <- as.Date(Strips$PDT, format = "%m/%d/%y")
 Strips$PDT <- julian(Strips$PDT)
 
 #Changing Na to means of the column
+Strips$YIELD <- as.numeric(Strips$YIELD)
+Strips$DEN <- as.numeric(Strips$DEN)
+on_numeric_values <- grep("[^0-9.]", Strips$YIELD, value = TRUE)
+on_numeric_values
+
+## This is probably better than the previous method. 
+my_df <- Strips %>% 
+  group_by(ENV) %>% 
+  mutate(YIELD = replace_na(YIELD, mean(YIELD, na.rm = TRUE)))
+my_df
+
+Strips$PHT[is.na(Strips$PHT)]<-mean(Strips$PHT,na.rm=TRUE)
+Strips$EHT[is.na(Strips$EHT)]<-mean(Strips$EHT,na.rm=TRUE)
+Strips$SDL[is.na(Strips$SDL)]<-mean(Strips$SDL,na.rm=TRUE)
+Strips$SDS[is.na(Strips$SDS)]<-mean(Strips$SDS,na.rm=TRUE)
+Strips$MST[is.na(Strips$MST)]<-mean(Strips$MST,na.rm=TRUE)
+Strips$TWT[is.na(Strips$TWT)]<-mean(Strips$TWT,na.rm=TRUE)
+Strips$KWT300[is.na(Strips$KWT300)]<-mean(Strips$KWT300,na.rm=TRUE)
+Strips$YIELD[is.na(Strips$YIELD)]<-mean(Strips$YIELD,na.rm=TRUE)
+Strips$PRO[is.na(Strips$PRO)]<-mean(Strips$PRO,na.rm=TRUE)
+Strips$OIL[is.na(Strips$OIL)]<-mean(Strips$OIL,na.rm=TRUE)
+Strips$STA[is.na(Strips$STA)]<-mean(Strips$STA,na.rm=TRUE)
+Strips$DEN[is.na(Strips$DEN)]<-mean(Strips$DEN,na.rm=TRUE)
+Strips$FIB[is.na(Strips$FIB)]<-mean(Strips$FIB,na.rm=TRUE)
+
+mean(Strips$YIELD, na.rm = TRUE)
+min(Strips$YIELD, na.rm = TRUE)
+max(Strips$YIELD, na.rm = TRUE)
+
 
 Strips$CEC[is.na(Strips$CEC)]<-mean(Strips$CEC,na.rm=TRUE)
 Strips$pH[is.na(Strips$pH)]<-mean(Strips$pH,na.rm=TRUE)

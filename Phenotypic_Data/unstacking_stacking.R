@@ -11,7 +11,7 @@ column_pairs <- list(
   c("TWT1", "TWT2"),
   c("NOP1", "NOP2"),
   c("GWT1", "GWT2"),
-  c("KWT3001", "KWT3002"),
+  c("KWT1", "KWT2"),
   c("PRO1", "PRO2"),
   c("OIL1", "OIL2"),
   c("STA1","STA2"),
@@ -21,14 +21,35 @@ column_pairs <- list(
 
 # Use dplyr and tidyr to stack each pair of columns and combine them
 
-my_df2  <- read.csv("Unstacked_2019IL.csv", stringsAsFactors = T)
+my_df3  <- read.csv("Unstacked_2020IL.csv", stringsAsFactors = T)
 
   
- stacked <- reshape2::melt(my_df2, id.var = c('YR',	'FAR',	'FC',	'STATE',	'HYB',	'CODE'
-)
+ stacked2020 <- reshape2::melt(my_df3, id.var = c('EXPERIMENT', 'FARMER',	'STATE', 'HYBRID',	'CODE', 'CEC',	'pH',	'OM',	'EstNRel','S',	'P',	'Ca', 'Mg',	'K',	'Na'),
                              variable.name = 'Traits') 
-  print(data_mod)
+  print(stacked2020)
+  
   library(readr)
-  write.csv(stactacked_2019IL.csv)
+  write.csv(stacked2020, "stacked_2020IL.csv")
   
+
+# Unstacking values again into one column
+  unstack  <- read.csv("stacked_2019IL.csv", stringsAsFactors = T)
+  unstack$value <- as.numeric(unstack$value)
   
+  library(tidyverse)
+ p <-  unstack  %>% 
+    pivot_wider(names_from = Trait,
+                values_from = value,
+                values_fn = list) %>% 
+    unnest(cols = c(PHT,EHT,SDL,SDS,MST,TWT,NOP,GWT,KWT300,PRO,OIL,STA,DEN,FIB))
+P <-  data.frame(p)
+
+
+
+P <- unstack %>%
+  group_by(FAR,REP,CODE) %>%
+  mutate(index = row_number()) %>%
+  pivot_wider(names_from = "Trait", values_from = "value")
+
+
+
