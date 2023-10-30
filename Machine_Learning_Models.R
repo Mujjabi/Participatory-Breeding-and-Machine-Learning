@@ -1,7 +1,7 @@
 ## Machine Learning Workflow
 
 ## 1. Obtaining weather data using farmer cordinates.
-
+library(readr)
 library(daymetr)
 df1 <- download_daymet(site = "Glazik2018",
                        lat = 40.443875,
@@ -363,11 +363,6 @@ df45 <- download_daymet(site = "Ambriole2021",
 library(tidyverse)
 Weather <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12,df13,df14,df15,df16,df17,df18,df20,df21,df22,df23,df24,df25,df26,df27,df28,df29,df30,df31,df32,df33,df34,df35,df36,df37,df38,df39,df40,df41,df42,df43,df44,df45)
 
-library(readr)
-write.csv(Weather, "Raw_Weather_data_Orei.csv")
-
-
-
 ## Changing names and Unstacking columns
 
 # Variable names are too Long and stucked into one column. This will make names shorter and unstacked
@@ -399,49 +394,32 @@ weather_sorted$month<-factor(weather_sorted$month, levels=month.abb)
 # You can also select a specific year using the select () function.Using the pipe operator %>% we could chain operations and avoid saving intermediate objects. Forexample, here were are secting precipitation data from 2019 only
 
 Weather_GS  <- weather_sorted %>% 
-            filter(month %in% c("May", "Jun", "Jul", "Aug", "Sep"))%>% 
-              select(site,year, month,Date, prcp,srad, tmax,tmin, temp)
+  filter(month == c("May", "Jun", "Jul", "Aug", "Sep")) %>% 
+  select(site, month,Date, prcp,srad, tmax, tmin, temp)
+
 
 ## Variable Uniy conversions. 
 # if we want to change the units of the variables, we can use mutate function.
 
 Weather_GS <- Weather_GS %>% 
   mutate(
-    #prcp_in = prcp / 25.4,
+    prcp_in = prcp / 25.4,
     tmax = (tmax* 9/5)+32,
     tmin = (tmin* 9/5)+32,
     temp = (temp* 9/5)+32,
-    month = factor(month, levels = month.abb))
-
-#Estimating GDD. (tmax+tmin)/2 - 50 . But if tmax is above 86, we change to 86 and if below 50 we change it to 50. 
-
-library(dplyr)
-Weather_GS$tmax_gdd <- Weather_GS$tmax
-
-Weather_GS <- Weather_GS%>%
-  mutate(tmax_gdd = ifelse(tmax_gdd > 86, 86, ifelse(tmax_gdd < 50, 50, tmax_gdd)))
-
-Weather_GS$GDD <- (((Weather_GS$tmin+Weather_GS$tmax_gdd)/2)-50)
-
+    month = factor(month, levels = month.abb)
+  )
 
 ## Summarizing and group Data.
 # We can use the group_by function and summarize function to group data
 
-Weather_GS <- Weather_GS %>% group_by(site,year,month) %>% 
-  summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp), GDD = sum(GDD))
-
-library(readr)
-write.csv(Weather_GS, "Weather_Data_Stacked.csv")
+Weather_GS <- Weather_GS %>% group_by(site,month) %>% 
+  summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp))
 
 
 Weather_GS_clean <-Weather_GS %>% 
   pivot_wider(names_from = c(month), #This helps to unstack a column with multiple variables into multiple colomns
-              values_from = c(prcp, srad, tmax, tmin, temp, GDD))
-
-library(readr)
-write.csv(Weather_GS_clean, "Weather_Data_UnStacked.csv")
-
-
+              values_from = c(prcp, srad, tmax, tmin, temp))
 
 ## This data was joined with soil data, management data and agronomic data to form one dataset for further statistical analysis. 
 
@@ -483,7 +461,7 @@ ggplot(data = Weather_GS) +
   geom_point(mapping = aes(x = month, y = temp, color = month)) +
   facet_wrap(~ site) +
   labs(title = "Average Monthly temperature at each Strip Trial Site",
-       y = "Precipitation (mm)",
+       y = "Temperature (Degrees F)",
        x = "Month") +
   theme_bw()
 
@@ -498,11 +476,95 @@ ggplot(data = Weather_GS) +
   theme_bw()
 
 
+## Exporting monthly Weather data for the growing season (May-Sept) for all farmers from 2018 to 2021
+library(readr)
+
+write.csv(Weather_GS, file ="Weather_Stacked.csv", row.names = F)
+write.csv(Weather_GS_clean, file ="Strip_Trial_Weather_data.csv", row.names = F)
+
+#Combine Soil and Weather Data 
+
+library(readr)
+Soil_Management <- read.csv("Edaphic_Management_data.csv", stringsAsFactors = T)
+Soil_Management_Weather <- merge(Soil_Management, Weather_GS_clean,by="site")
+write.csv(Soil_Management_Weather, file ="Soil_Management_Weather_data.csv", row.names = F)
+
+
+
+
+
+
+## Estimating GDD
+GDD <- weather_sorted
+
+
+## Variable Unit conversions. 
+# if we want to change the units of the variables, we can use mutate function.
+
+GDD <- GDD %>% 
+  mutate(
+    prcp_in = prcp / 25.4,
+    tmax = (tmax* 9/5)+32,
+    tmin = (tmin* 9/5)+32,
+    temp = (temp* 9/5)+32,
+    month = factor(month, levels = month.abb)
+  )
+
+
+library(tidyverse)
+GDD_sorted <-select(GDD, site,year,month,Date,dayl:tmin)
+GDD_sorted$temp<-(GDD_sorted $tmin+GDD_sorted$tmax)/2
+GDD_sorted$month<-factor(GDD_sorted$month)
+GDD_sorted$GDD <- (GDD_sorted$tmax - 50)
+
+
+# You can also select a specific year using the select () function.Using the pipe operator %>% we could chain operations and avoid saving intermediate objects. Forexample, here were are secting precipitation data from 2019 only
+
+GDD_sorted2 <- GDD_sorted %>% 
+  filter(month == c("May", "Jun", "Jul", "Aug", "Sep")) %>% 
+  select(site,month,Date,prcp,srad, tmax, tmin, temp, GDD)
+
+GDD_sorted <- GDD_sorted %>% group_by(site,month) %>% 
+  summarize(prcp = sum(prcp),srad = mean(srad), tmax = mean(tmax),tmin = mean(tmin), temp = mean(temp), GDD = sum(GDD))
+
+
+
+
+## Exporting monthly Weather data for the growing season (May-Sept) for all farmers from 2018 to 2021
+library(readr)
+write.csv(GDD_sorted, file ="Weather_GDD.csv", row.names = F)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Estimating the Probability of An Experimental Hybrid to Outperform the Check 
 
 library(readr)
-Strips  <- read.csv("ALL.csv", stringsAsFactors = T)
+Strips  <- read.csv("SubSample_RData.csv", stringsAsFactors = T)
 Strips <- Strips[-c(1,3:8)]
 
 ## Converting planting data to julian
@@ -511,35 +573,6 @@ Strips$PDT <- as.Date(Strips$PDT, format = "%m/%d/%y")
 Strips$PDT <- julian(Strips$PDT)
 
 #Changing Na to means of the column
-Strips$YIELD <- as.numeric(Strips$YIELD)
-Strips$DEN <- as.numeric(Strips$DEN)
-on_numeric_values <- grep("[^0-9.]", Strips$YIELD, value = TRUE)
-on_numeric_values
-
-## This is probably better than the previous method. 
-my_df <- Strips %>% 
-  group_by(ENV) %>% 
-  mutate(YIELD = replace_na(YIELD, mean(YIELD, na.rm = TRUE)))
-my_df
-
-Strips$PHT[is.na(Strips$PHT)]<-mean(Strips$PHT,na.rm=TRUE)
-Strips$EHT[is.na(Strips$EHT)]<-mean(Strips$EHT,na.rm=TRUE)
-Strips$SDL[is.na(Strips$SDL)]<-mean(Strips$SDL,na.rm=TRUE)
-Strips$SDS[is.na(Strips$SDS)]<-mean(Strips$SDS,na.rm=TRUE)
-Strips$MST[is.na(Strips$MST)]<-mean(Strips$MST,na.rm=TRUE)
-Strips$TWT[is.na(Strips$TWT)]<-mean(Strips$TWT,na.rm=TRUE)
-Strips$KWT300[is.na(Strips$KWT300)]<-mean(Strips$KWT300,na.rm=TRUE)
-Strips$YIELD[is.na(Strips$YIELD)]<-mean(Strips$YIELD,na.rm=TRUE)
-Strips$PRO[is.na(Strips$PRO)]<-mean(Strips$PRO,na.rm=TRUE)
-Strips$OIL[is.na(Strips$OIL)]<-mean(Strips$OIL,na.rm=TRUE)
-Strips$STA[is.na(Strips$STA)]<-mean(Strips$STA,na.rm=TRUE)
-Strips$DEN[is.na(Strips$DEN)]<-mean(Strips$DEN,na.rm=TRUE)
-Strips$FIB[is.na(Strips$FIB)]<-mean(Strips$FIB,na.rm=TRUE)
-
-mean(Strips$YIELD, na.rm = TRUE)
-min(Strips$YIELD, na.rm = TRUE)
-max(Strips$YIELD, na.rm = TRUE)
-
 
 Strips$CEC[is.na(Strips$CEC)]<-mean(Strips$CEC,na.rm=TRUE)
 Strips$pH[is.na(Strips$pH)]<-mean(Strips$pH,na.rm=TRUE)
