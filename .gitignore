@@ -2,3 +2,15 @@
 .Rhistory
 .RData
 .Ruserdata
+Phenotypic_Data/Data_Wrangling/*.csv
+Phenotypic_Data/Data_Wrangling/*.xlsx
+FinalProject/
+Analysis_Python/ML_Models/*.csv
+Phenotypic_Data/Dataset_Clean/
+Phenotypic_Data/ML_Linear/
+Phenotypic_Data/ML_LogisticRegression/
+Phenotypic_Data/PCA/*.csv
+Phenotypic_Data/Raw_Data/
+Phenotypic_Data/Reliability_Data/
+
+
