@@ -1,0 +1,45 @@
+HYB,PHT,groups.x,EHT,groups.y,SDL,groups.x.x,SDS,groups.y.y,TWT,groups.x.x.x,KWT300,groups.y.y.y,YIELD,groups.x.x.x.x,PRO,groups.y.y.y.y,OIL,groups.x.x.x.x.x,STA,groups.y.y.y.y.y
+ORG8,223.7,bc,108.4,cde,20.2,f,17.9,gh,5.5,cd,75.1,h,4.4,cd,10.9,a,4.2,fg,68.3,d
+ORG1,224.2,bc,108.8,cd,20.9,d,18.7,cd,10.3,abc,78.3,c,8.3,abc,8.2,de,4.8,bcd,66,f
+ORG2,224.7,bc,109.2,bcd,20.2,ef,18,fg,9.2,abcd,76.4,f,7.4,abcd,10.3,ab,4.5,defg,68.8,cd
+ORG2_Inoc,221.9,c,108.1,cde,20.4,e,18.3,e,8,abcd,76.7,ef,6.4,abcd,9.7,abc,4.3,efg,69.4,c
+CHECK2,231.2,a,111,ab,20.2,f,17.8,h,13.4,a,86.1,a,10.7,a,7.4,ef,3.4,h,72.4,a
+ORG18,225.1,bc,108.1,cde,20.4,ef,18.3,e,8.9,abcd,62.7,k,7.1,abcd,9.5,bc,4,g,70.3,b
+ORG19,225.3,bc,109.3,bcd,20.4,ef,18.1,ef,10,abcd,78.1,cd,8,abcd,9,cd,4,g,70.5,b
+ORG4,223.5,bc,108,de,20.9,d,18.8,c,9.8,abcd,74.1,i,7.9,abcd,7.4,ef,4.9,abcd,66.7,e
+ORG20,221.6,c,106.2,ef,21.1,cd,19.1,ab,10.5,abc,75.4,gh,8.4,abc,9.4,bc,5.5,ab,68.3,d
+ORG14,223.2,bc,106.8,ef,21.2,bcd,19.1,ab,9.4,abcd,70.5,j,7.5,abcd,9.2,bc,5.4,ab,68.6,cd
+ORG9,219.4,c,104.3,f,20.4,ef,18.4,de,0.5,d,58.7,l,0.4,d,7.7,def,5.7,a,69.7,bc
+ORG11,223.4,bc,106.5,ef,21.1,cd,19.1,ab,12,ab,78,cd,9.6,ab,9.4,bc,5.3,ab,68.7,cd
+ORG12,222.3,bc,105.4,f,21.2,bcd,18.9,bc,5.5,cd,74.4,hi,4.4,cd,8.9,cde,5.5,ab,68.9,cd
+ORG3,224.2,bc,107.7,de,21.1,cd,19,ab,8.4,abcd,74.8,h,6.8,abcd,7.6,ef,4.9,abc,65.2,g
+CHECK3,225.3,bc,107.7,de,21.1,cd,19,b,10.9,ab,79,b,8.8,ab,6.4,f,4.3,fg,66.9,e
+ORG10,222,c,105.7,f,21,d,19,ab,11.8,ab,77.6,de,9.4,ab,9.4,bc,5.2,ab,68.7,cd
+ORG21,225.2,bc,110.6,ab,21.3,ab,19.1,ab,5.7,cd,76,fg,4.5,cd,6.2,f,4.6,cdef,59.9,h
+ORG22,224,bc,111.6,a,21.5,a,19.2,a,7,bcd,76.6,f,5.6,bcd,6.4,f,4.7,bcde,59.5,h
+ORG23,227.2,ab,110.8,ab,21.3,ab,19.1,ab,6.6,bcd,76,fg,5.3,bcd,6.8,ef,4.2,fg,59.7,h
+ORG24,223.6,bc,109.9,abc,21.2,bc,19.2,ab,4.8,d,75.5,gh,3.8,d,7,ef,4.7,bcdef,58.6,i
+ORG25,225.1,bc,110.1,abc,21.2,bcd,19.1,ab,5.7,cd,75.4,gh,4.5,cd,6,f,4.5,def,60,h
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+ORG8,223.7 bc,,108.4 cde,,20.2 f,,17.9 gh,,5.5 cd,,75.1 h,,4.4 cd,,10.9 a,,4.2 fg,,68.3 d,
+ORG1,224.2 bc,,108.8 cd,,20.9 d,,18.7 cd,,10.3 abc,,78.3 c,,8.3 abc,,8.2 de,,4.8 bcd,,66 f,
+ORG2,224.7 bc,,109.2 bcd,,20.2 ef,,18 fg,,9.2 abcd,,76.4 f,,7.4 abcd,,10.3 ab,,4.5 defg,,68.8 cd,
+ORG2_Inoc,221.9 c,,108.1 cde,,20.4 e,,18.3 e,,8 abcd,,76.7 ef,,6.4 abcd,,9.7 abc,,4.3 efg,,69.4 c,
+CHECK2,231.2 a,,111 ab,,20.2 f,,17.8 h,,13.4 a,,86.1 a,,10.7 a,,7.4 ef,,3.4 h,,72.4 a,
+ORG18,225.1 bc,,108.1 cde,,20.4 ef,,18.3 e,,8.9 abcd,,62.7 k,,7.1 abcd,,9.5 bc,,4 g,,70.3 b,
+ORG19,225.3 bc,,109.3 bcd,,20.4 ef,,18.1 ef,,10 abcd,,78.1 cd,,8 abcd,,9 cd,,4 g,,70.5 b,
+ORG4,223.5 bc,,108 de,,20.9 d,,18.8 c,,9.8 abcd,,74.1 i,,7.9 abcd,,7.4 ef,,4.9 abcd,,66.7 e,
+ORG20,221.6 c,,106.2 ef,,21.1 cd,,19.1 ab,,10.5 abc,,75.4 gh,,8.4 abc,,9.4 bc,,5.5 ab,,68.3 d,
+ORG14,223.2 bc,,106.8 ef,,21.2 bcd,,19.1 ab,,9.4 abcd,,70.5 j,,7.5 abcd,,9.2 bc,,5.4 ab,,68.6 cd,
+ORG9,219.4 c,,104.3 f,,20.4 ef,,18.4 de,,0.5 d,,58.7 l,,0.4 d,,7.7 def,,5.7 a,,69.7 bc,
+ORG11,223.4 bc,,106.5 ef,,21.1 cd,,19.1 ab,,12 ab,,78 cd,,9.6 ab,,9.4 bc,,5.3 ab,,68.7 cd,
+ORG12,222.3 bc,,105.4 f,,21.2 bcd,,18.9 bc,,5.5 cd,,74.4 hi,,4.4 cd,,8.9 cde,,5.5 ab,,68.9 cd,
+ORG3,224.2 bc,,107.7 de,,21.1 cd,,19 ab,,8.4 abcd,,74.8 h,,6.8 abcd,,7.6 ef,,4.9 abc,,65.2 g,
+CHECK3,225.3 bc,,107.7 de,,21.1 cd,,19 b,,10.9 ab,,79 b,,8.8 ab,,6.4 f,,4.3 fg,,66.9 e,
+ORG10,222 c,,105.7 f,,21 d,,19 ab,,11.8 ab,,77.6 de,,9.4 ab,,9.4 bc,,5.2 ab,,68.7 cd,
+ORG21,225.2 bc,,110.6 ab,,21.3 ab,,19.1 ab,,5.7 cd,,76 fg,,4.5 cd,,6.2 f,,4.6 cdef,,59.9 h,
+ORG22,224 bc,,111.6 a,,21.5 a,,19.2 a,,7 bcd,,76.6 f,,5.6 bcd,,6.4 f,,4.7 bcde,,59.5 h,
+ORG23,227.2 ab,,110.8 ab,,21.3 ab,,19.1 ab,,6.6 bcd,,76 fg,,5.3 bcd,,6.8 ef,,4.2 fg,,59.7 h,
+ORG24,223.6 bc,,109.9 abc,,21.2 bc,,19.2 ab,,4.8 d,,75.5 gh,,3.8 d,,7 ef,,4.7 bcdef,,58.6 i,
+ORG25,225.1 bc,,110.1 abc,,21.2 bcd,,19.1 ab,,5.7 cd,,75.4 gh,,4.5 cd,,6 f,,4.5 def,,60 h,

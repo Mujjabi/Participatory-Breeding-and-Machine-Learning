@@ -442,7 +442,6 @@ library(readr)
 write.csv(Weather_GS_clean, "Weather_Data_UnStacked.csv")
 
 
-
 ## This data was joined with soil data, management data and agronomic data to form one dataset for further statistical analysis. 
 
 Weather_GS$month <- as.factor(Weather_GS$month)
@@ -522,8 +521,6 @@ n_trees <- 100
 imputed_data <- missForest(Strip2, ntree = n_trees)
 Clean <- imputed_data$ximp
 colSums(is.na(Clean))
-
-
 
 
 ## Another method: replacing missing values with means. Dont recommend
